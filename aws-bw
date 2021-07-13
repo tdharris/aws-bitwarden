@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Custom Field Names from Bitwarden
+DEFAULT_FIELD_AWS_ACCESS_KEY="AWS_ACCESS_KEY_ID"
+DEFAULT_FIELD_AWS_SECRET_KEY="AWS_SECRET_KEY"
+
+nflag=false
+
+# Validate both bitwarden (bw) & jq
+command -v jq >/dev/null 2>&1 || { echo >&2 "jq could not be found."; exit 1; }
+command -v bw >/dev/null 2>&1 || { echo >&2 "bw could not be found."; exit 1; }
+
+# Parse BW_ITEM as bitwarden item name
+while getopts "n:" opt; do
+	case $opt in
+		n ) BW_ITEM=$OPTARG; nflag=true;;
+		\? ) echo 'Invalid argument, or argument value!'
+             exit 1;;
+	esac
+done
+
+shift $(($OPTIND - 1))
+
+if ! $nflag; then echo "-n is missing!" && exit 1; fi
+
+# Is Bitwarden Authenticated?
+# AWS CLI is not allowing user prompt to passthrough
+if [ -z "$BW_SESSION" ]; then
+    (>&2 echo -e "Missing BW_SESSION from Environment Variables.\n\nPlease set by:\n\n> bw unlock")
+    exit 1;
+fi
+
+bw sync > /dev/null
+if [[ $? != 0 ]]; then
+    (>&2 echo "unable to login or sync with bitwarden.")
+    exit 1
+fi
+
+# Fetch Bitwarden Item
+BW_ITEM_RESULTS=$(bw get item "$BW_ITEM")
+if [ $? -ne 0 ]; then echo "Issue with Bitwarden CLI: bw get item \"$BW_ITEM\"" && exit 1; fi
+
+# Parse AWS Credentials with Custom Field Names
+AWS_ACCESS_KEY_ID=$(echo "$BW_ITEM_RESULTS" | jq -r ".fields[] | select(.name == \"$DEFAULT_FIELD_AWS_ACCESS_KEY\").value")
+AWS_SECRET_KEY=$(echo "$BW_ITEM_RESULTS" | jq -r ".fields[] | select(.name == \"$DEFAULT_FIELD_AWS_SECRET_KEY\").value")
+
+# Validate exists
+[ -z "$AWS_ACCESS_KEY_ID" ] && echo "Failed to parse AWS_ACCESS_KEY_ID: $DEFAULT_FIELD_AWS_ACCESS_KEY" && exit 1;
+[ -z "$AWS_SECRET_KEY" ] && echo "Failed to parse AWS_SECRET_KEY: $DEFAULT_FIELD_AWS_SECRET_KEY" && exit 1;
+
+# See AWS docs for Sourcing credentials with an external process
+# https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sourcing-external.html
+echo "{\"Version\": 1, \"AccessKeyId\": \"$AWS_ACCESS_KEY_ID\", \"SecretAccessKey\": \"$AWS_SECRET_KEY\"}"
