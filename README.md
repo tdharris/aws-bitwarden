@@ -21,9 +21,9 @@ See AWS Documentation [Sourcing credentials with an external process](https://do
 - If wanting to source the `.aws/credentials` profile values to a Bitwarden Item, modify the profile to use the `aws-bw` script and pass the relevant Bitwarden Item Name. E.g.
 ```
 [default]
-credential_process = /path/to/aws-bitwarden -n 'aws-iam-personal-mycli-env'
+credential_process = aws-bw -n 'aws-iam-personal-mycli-env'
 [profileA]
-credential_process = /path/to/aws-bitwarden -n '<bw-item-name>'
+credential_process = aws-bw -n '<bw-item-name>'
 ```
 #### General Use-Case Steps
 - First unlock the vault to generate a session key with Bitwarden & set the environment variable:
