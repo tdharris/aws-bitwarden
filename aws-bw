@@ -4,16 +4,16 @@
 DEFAULT_FIELD_AWS_ACCESS_KEY="AWS_ACCESS_KEY_ID"
 DEFAULT_FIELD_AWS_SECRET_KEY="AWS_SECRET_ACCESS_KEY"
 
-nflag=false
+sflag=false
 
 # Validate both bitwarden (bw) & jq
 command -v jq >/dev/null 2>&1 || { echo >&2 "jq could not be found."; exit 1; }
 command -v bw >/dev/null 2>&1 || { echo >&2 "bw could not be found."; exit 1; }
 
 # Parse BW_ITEM as bitwarden item name
-while getopts "n:" opt; do
+while getopts "s:" opt; do
 	case $opt in
-		n ) BW_ITEM=$OPTARG; nflag=true;;
+		s ) BW_ITEM=$OPTARG; sflag=true;;
 		\? ) echo 'Invalid argument, or argument value!'
              exit 1;;
 	esac
@@ -21,18 +21,19 @@ done
 
 shift $(($OPTIND - 1))
 
-if ! $nflag; then echo "-n is missing!" && exit 1; fi
+if ! $sflag; then echo -e "-s <keyword> is missing.\n\nPlease define the search term for the bitwarden item. E.g.\n\n> aws-bw -s <searchName>\n" && exit 1; fi
 
+# Validate Bitwarden is authenticated & unlocked
+# Note: AWS CLI is not allowing user prompt to passthrough
 # Is Bitwarden Authenticated?
-# AWS CLI is not allowing user prompt to passthrough
 if [ -z "$BW_SESSION" ]; then
     (>&2 echo -e "Missing BW_SESSION from Environment Variables.\n\nPlease set by:\n\n> bw unlock")
     exit 1;
 fi
 
-bw sync > /dev/null
-if [[ $? != 0 ]]; then
-    (>&2 echo "unable to login or sync with bitwarden.")
+# Check if unlocked
+if [ $(bw status | jq '.status') != \"unlocked\" ]; then
+    (>&2 echo "bitwarden vault is locked, please unlock with: \n\n> bw unlock")
     exit 1
 fi
 
