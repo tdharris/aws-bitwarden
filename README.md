@@ -4,7 +4,7 @@ Script to source aws credential profiles from bitwarden using [bw cli](https://g
 See AWS Documentation [Sourcing credentials with an external process](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sourcing-external.html) for more details on the approach.
 
 ## Installation
-- Download [aws-bw](https://raw.githubusercontent.com/tdharris/aws-bitwarden/master/aws-bw)
+- Download [aws-bw](https://raw.githubusercontent.com/tdharris/aws-bitwarden-profile/master/aws-bw)
 - Make it executable and reachable. E.g. `chmod +x aws-bw && sudo cp aws-bw /usr/local/bin`
 - Download and install the Bitwarden CLI [bw](https://github.com/bitwarden/cli#downloadinstall) and [jq](https://stedolan.github.io/jq/download/) for parsing JSON.
 
